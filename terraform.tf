@@ -6,6 +6,7 @@ terraform {
     workspaces {
       name  = "dev1"
     }
+
   }
   //version requirements for terraform and provider
   required_providers {
