@@ -13,4 +13,13 @@ variable "default_subscription_email" {
   default = "liucong.haonan@gmail.com"
 }
 
+variable "default_ds_user" {
+  description = "default user with DS permission"
+  default = "dustin.liu.mle"
+}
+
+variable "default_ds_group" {
+    description = "default group for DS users"
+    default = "group.data"
+}
 

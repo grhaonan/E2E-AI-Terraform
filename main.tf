@@ -21,11 +21,12 @@ resource "aws_budgets_budget" "daily-cost-budget-notification" {
 }
 
 //Define a default user for daily operations and add it to the default group defined in later section
-
+//Here we are not following AWS best practices per mentioned in https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest
+//TODO - refactoring by following the AWS best practices
 module "iam_iam-user" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-user"
   version = "5.3.2"
-  name = "dustin.liu.mle"
+  name = var.default_ds_user
   pgp_key = "keybase:dustinliu"
   force_destroy = true
   tags = {
@@ -33,10 +34,24 @@ module "iam_iam-user" {
   }
 }
 
+//Define a default group with permission to operate Data Science operations plus permission to change user password
+module "iam_iam-group-with-policies" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
+  version = "5.3.2"
+  name = var.default_ds_group
+  group_users = [
+    module.iam_iam-user.iam_user_name
+]
+  // so uer can change password
+  attach_iam_self_management_policy = true
 
-//Define a default group with permission to operate MLE operations
+  custom_group_policy_arns = [
+  "arn:aws:iam::aws:policy/job-function/DataScientist",
+  ]
+  tags = {
+    Team = "Data"
+  }
+}
 
-
-//Here we will be using IAM module from AWS
 
 
