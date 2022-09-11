@@ -1,5 +1,13 @@
+//TODO split the init setup - role, group, etc into a separate module
+//assume role will be used to create resources once initial setting is done
+
 provider "aws" {
   region = var.region
+  shared_config_files = ["/Users/dustinl/.aws/config"]
+  shared_credentials_files = ["/Users/dustinl/.aws/credentials"]
+  assume_role {
+    role_arn     = "arn:aws:iam::967632065582:role/RoleForMLE"
+  }
 }
 
 // Define budgets report
@@ -21,12 +29,34 @@ resource "aws_budgets_budget" "daily-cost-budget-notification" {
 }
 
 //Define a default user for daily operations and add it to the default group defined in later section
-//Here we are not following AWS best practices per mentioned in https://registry.terraform.io/modules/terraform-aws-modules/iam/aws/latest
-//TODO - refactoring by following the AWS best practices
+
+module "iam_iam-account" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-account"
+  version = "5.3.2"
+  minimum_password_length = 8
+  require_uppercase_characters = true
+  account_alias = "dustinliudev1"
+
+}
+
+module "iam_iam-assumable-role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role"
+  version = "5.3.2"
+  attach_admin_policy = true
+  trusted_role_arns = [
+    "arn:aws:iam::967632065582:root",
+    module.iam_iam-user.iam_user_arn
+  ]
+  create_role = true
+  role_name = "RoleForMLE"
+  role_requires_mfa = false
+}
+
+
 module "iam_iam-user" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-user"
   version = "5.3.2"
-  name = var.default_ds_user
+  name = var.default_mle_admin
   pgp_key = "keybase:dustinliu"
   force_destroy = true
   tags = {
@@ -34,24 +64,24 @@ module "iam_iam-user" {
   }
 }
 
-//Define a default group with permission to operate Data Science operations plus permission to change user password
-module "iam_iam-group-with-policies" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
-  version = "5.3.2"
-  name = var.default_ds_group
+
+module "iam_iam-group-with-assumable-roles-policy" {
+  source          = "terraform-aws-modules/iam/aws//modules/iam-group-with-assumable-roles-policy"
+  version         = "5.3.2"
+  name            = "data-operations"
+  assumable_roles = [
+    module.iam_iam-assumable-role.iam_role_arn
+  ]
   group_users = [
     module.iam_iam-user.iam_user_name
-]
-  // so uer can change password
-  attach_iam_self_management_policy = true
-
-  custom_group_policy_arns = [
-  "arn:aws:iam::aws:policy/job-function/DataScientist",
   ]
   tags = {
     Team = "Data"
   }
 }
+
+
+
 
 
 

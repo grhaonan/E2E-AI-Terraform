@@ -3,8 +3,6 @@
 **/.terraform/*
 **/.terraform.lock.hcl
 
-**/.idea/*
-
 # Crash log files
 crash.log
 crash.*.log
